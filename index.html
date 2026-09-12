@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MatchGuard — Event Settlement Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0A0C11;
+    --bg-panel:#12151C;
+    --bg-panel-raised:#181C25;
+    --line:#262B36;
+    --whistle:#3E7BE0;
+    --whistle-bright:#6FA3F5;
+    --chalk:#EDEFF4;
+    --chalk-dim:#8D93A3;
+    --slate:#5B6172;
+    --amber:#D9A33B;
+    --red:#D9524E;
+    --card:#D93B3B;
+    --gold:#E4C468;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top, rgba(62,123,224,.09), transparent 55%),
+      var(--bg-deep);
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--whistle-bright);}
+  code{ font-family:'IBM Plex Mono',monospace; }
+
+  header{
+    max-width:1180px;
+    margin:0 auto;
+    padding:44px 20px 26px;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--whistle-bright);
+    margin:0 0 12px;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:clamp(30px,5vw,48px);
+    line-height:1.05;
+    letter-spacing:.01em;
+    margin:0 0 14px;
+    color:var(--chalk);
+    text-transform:uppercase;
+  }
+  h1 em{ font-style:normal; color:var(--gold); }
+  .lede{
+    font-size:16px;
+    line-height:1.6;
+    color:var(--chalk-dim);
+    max-width:680px;
+    margin:0 0 6px;
+  }
+  .addr-line{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--chalk-dim);
+    margin-top:16px;
+    padding-top:16px;
+    border-top:1px dashed var(--line);
+  }
+  .addr-line code{ color:var(--gold); word-break:break-all; }
+  .status-pill{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--chalk-dim);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 14px;
+    margin-top:14px;
+  }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--slate); flex-shrink:0; }
+  .dot.on{ background:var(--whistle-bright); box-shadow:0 0 8px var(--whistle-bright); }
+  .status-pill button{
+    background:none;border:1px solid var(--line);color:var(--whistle-bright);
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;cursor:pointer;
+    padding:6px 10px;border-radius:4px;
+  }
+  .status-pill button:hover{ border-color:var(--whistle); }
+
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:32px 20px 80px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:920px){ main{ grid-template-columns:1fr; } }
+
+  .col{ display:flex; flex-direction:column; gap:18px; }
+
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--whistle);
+    border-radius:2px;
+    padding:22px;
+  }
+  .panel.accent-red{ border-left-color:var(--red); }
+  .panel.accent-gold{ border-left-color:var(--gold); }
+  .panel h2{
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .panel .desc{
+    font-size:13px;
+    color:var(--chalk-dim);
+    margin:0 0 16px;
+    line-height:1.5;
+  }
+  label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--chalk-dim);
+    margin:12px 0 6px;
+  }
+  label:first-of-type{ margin-top:0; }
+  input[type=text], input[type=datetime-local], textarea, select{
+    width:100%;
+    background:var(--bg-panel-raised);
+    border:1px solid var(--line);
+    border-radius:3px;
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    padding:9px 10px;
+  }
+  textarea{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; resize:vertical; min-height:70px; }
+  input:focus, textarea:focus, select:focus{ outline:2px solid var(--whistle); outline-offset:1px; }
+  .hint{ font-size:11.5px; color:var(--slate); margin-top:4px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+  button.primary, button.secondary, button.danger{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    padding:10px 16px;
+    border-radius:3px;
+    cursor:pointer;
+    margin-top:16px;
+    margin-right:8px;
+  }
+  button.primary{ background:var(--whistle); border:1px solid var(--whistle); color:#04101F; font-weight:600; }
+  button.primary:hover{ background:var(--whistle-bright); }
+  button.secondary{ background:none; border:1px solid var(--line); color:var(--chalk-dim); }
+  button.secondary:hover{ border-color:var(--amber); color:var(--amber); }
+  button.danger{ background:none; border:1px solid var(--line); color:var(--chalk-dim); }
+  button.danger:hover{ border-color:var(--red); color:var(--red); }
+
+  .out{
+    display:none;
+    margin-top:14px;
+    background:var(--bg-panel-raised);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    white-space:pre-wrap;
+    word-break:break-word;
+    max-height:340px;
+    overflow:auto;
+    color:var(--chalk-dim);
+  }
+  .out.ok{ border-color:var(--whistle); color:var(--chalk); }
+  .out.err{ border-color:var(--red); color:#F5C6C4; }
+
+  .verdict-hero{
+    display:none;
+    text-align:center;
+    padding:20px;
+    margin-bottom:16px;
+    background:var(--bg-panel-raised);
+    border:1px solid var(--line);
+    border-radius:3px;
+  }
+  .verdict-hero .vlabel{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--chalk-dim); }
+  .verdict-hero .vvalue{ font-family:'Oswald',sans-serif; font-size:36px; font-weight:700; text-transform:uppercase; margin:4px 0; }
+  .verdict-hero .vsettlement{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--chalk-dim); }
+
+  .field-row{ display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .field-row .k{ font-family:'IBM Plex Mono',monospace; color:var(--chalk-dim); flex-shrink:0; }
+  .field-row .v{ font-family:'IBM Plex Mono',monospace; color:var(--chalk); text-align:right; word-break:break-word; }
+
+  .badge{ display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; }
+  .badge-status-pending_acceptance{ background:rgba(217,163,59,.16); color:var(--amber); }
+  .badge-status-open{ background:rgba(62,123,224,.18); color:var(--whistle-bright); }
+  .badge-status-proposed{ background:rgba(228,196,104,.16); color:var(--gold); }
+  .badge-status-finalized{ background:rgba(111,163,245,.2); color:var(--whistle-bright); }
+  .badge-status-expired, .badge-status-cancelled{ background:rgba(217,82,78,.16); color:var(--red); }
+  .badge-verdict-HomeWin, .badge-verdict-AwayWin{ background:rgba(62,123,224,.18); color:var(--whistle-bright); }
+  .badge-verdict-Draw{ background:rgba(217,163,59,.16); color:var(--amber); }
+  .badge-verdict-Postponed, .badge-verdict-Cancelled, .badge-verdict-Abandoned{ background:rgba(140,153,168,.14); color:var(--chalk-dim); }
+  .badge-verdict-Disputed{ background:rgba(217,82,78,.16); color:var(--red); }
+  .badge-verdict-Indeterminate{ background:rgba(140,153,168,.14); color:var(--chalk-dim); }
+  .badge-settlement-party_a_wins, .badge-settlement-party_b_wins{ background:rgba(62,123,224,.18); color:var(--whistle-bright); }
+  .badge-settlement-refund{ background:rgba(217,163,59,.16); color:var(--amber); }
+
+  .evidence-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:12px; }
+  .evidence-row .domain{ font-family:'IBM Plex Mono',monospace; color:var(--chalk); }
+  .evidence-row .flag{ font-family:'IBM Plex Mono',monospace; color:var(--chalk-dim); font-size:11px; }
+  .evidence-empty{ font-size:12.5px; color:var(--slate); font-style:italic; }
+
+  .history-row{ padding:9px 0; border-bottom:1px solid var(--line); font-size:12px; }
+  .history-row .htop{ display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .history-row .htrigger{ font-family:'IBM Plex Mono',monospace; color:var(--chalk); }
+  .history-row .hts{ font-family:'IBM Plex Mono',monospace; color:var(--slate); font-size:11px; }
+  .history-row .hdetail{ margin-top:4px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--chalk-dim); }
+
+  footer{
+    max-width:1180px; margin:0 auto; padding:24px 20px 60px;
+    font-size:12px; color:var(--slate); line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">GenLayer Intelligent Contract · Adversarial Sports Vertical</p>
+  <h1>Match<em>Guard</em></h1>
+  <p class="lede">
+    A two-party, address-bound sports EVENT settlement contract — not just a
+    score oracle. Canonical fixture binding, a locked multi-source evidence
+    set, optimistic proposal with an evidence-based challenge window,
+    versioned resolution history, and an always-terminal three-way
+    settlement (win / win / refund) with no path to a permanently stuck match.
+  </p>
+  <div class="addr-line">Contract address: <code id="contractAddrText">—</code></div>
+  <div class="status-pill">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Not connected</span>
+    <button id="connectBtn" type="button">Connect MetaMask</button>
+    <button id="testSessionBtn" type="button">Start test session</button>
+    <span id="testSessionNote" style="display:none;">Test session key lives only in this tab — refresh loses it.</span>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+
+    <section class="panel">
+      <h2>Create Match</h2>
+      <p class="desc">Caller becomes party_a automatically. party_b must accept before the match binds. Fixture fields form the canonical event identity checked against every piece of evidence.</p>
+
+      <label for="partyB">Party B address</label>
+      <input type="text" id="partyB" placeholder="0x…">
+
+      <div class="row2">
+        <div>
+          <label for="sport">Sport</label>
+          <input type="text" id="sport" placeholder="Football">
+        </div>
+        <div>
+          <label for="competition">Competition</label>
+          <input type="text" id="competition" placeholder="Premier League">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label for="homeTeam">Home team</label>
+          <input type="text" id="homeTeam" placeholder="Manchester United">
+        </div>
+        <div>
+          <label for="awayTeam">Away team</label>
+          <input type="text" id="awayTeam" placeholder="Liverpool">
+        </div>
+      </div>
+
+      <label for="scheduledStart">Scheduled start (kickoff, local time)</label>
+      <input type="datetime-local" id="scheduledStart">
+      <p class="hint">Must be 1 hour – 7 days from now.</p>
+
+      <div class="row2">
+        <div>
+          <label for="sideA">party_a backs</label>
+          <select id="sideA">
+            <option value="home">home team</option>
+            <option value="away">away team</option>
+          </select>
+        </div>
+        <div>
+          <label for="deadline">Resolution deadline (local time)</label>
+          <input type="datetime-local" id="deadline">
+        </div>
+      </div>
+      <p class="hint">Deadline must land 1–6 hours after kickoff. A Draw, or any non-Final event state, always refunds both parties.</p>
+
+      <label for="description">Description</label>
+      <input type="text" id="description" placeholder="Friendly wager on the full-time result" maxlength="200">
+
+      <label for="requiredDomains">Required source domains (comma-separated, 2–6, from the allowlist)</label>
+      <textarea id="requiredDomains">espn.com, bbc.com/sport</textarea>
+      <p class="hint">Allowlist: espn.com, bbc.com, skysports.com, reuters.com, ap.org, goal.com, fifa.com, uefa.com, nba.com, nfl.com, nhl.com, mlb.com, thescore.com, flashscore.com, sofascore.com, sportsmole.co.uk. A domain entry may optionally pin a path, e.g. "bbc.com/sport".</p>
+
+      <button class="primary" id="createBtn" type="button">Create match</button>
+      <div class="out" id="createOut"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Accept / Cancel Match</h2>
+      <p class="desc">Only party_b can accept, and only before kickoff. Only party_a can cancel, and only before acceptance.</p>
+
+      <label for="acceptId">Match ID</label>
+      <input type="text" id="acceptId" placeholder="0">
+
+      <button class="primary" id="acceptBtn" type="button">Accept (party_b)</button>
+      <button class="secondary" id="cancelBtn" type="button">Cancel (party_a)</button>
+      <div class="out" id="acceptOut"></div>
+    </section>
+
+    <section class="panel accent-gold">
+      <h2>Propose Resolution — Phase 1</h2>
+      <p class="desc">Permissionless. Only callable after the resolution deadline and before the resolution window closes. Every committed required domain must be represented. If evidence doesn't clear the quality bar, nothing locks and the match stays open for a retry.</p>
+
+      <label for="proposeId">Match ID</label>
+      <input type="text" id="proposeId" placeholder="0">
+
+      <label for="proposeUrls">Source URLs (one per line, 2–6)</label>
+      <textarea id="proposeUrls" placeholder="https://espn.com/soccer/match/...&#10;https://bbc.com/sport/football/..."></textarea>
+
+      <button class="primary" id="proposeBtn" type="button">Propose resolution</button>
+      <div class="out" id="proposeOut"></div>
+    </section>
+
+    <section class="panel accent-red">
+      <h2>Challenge Resolution — Phase 2</h2>
+      <p class="desc">Only party_a or party_b, only during the challenge window, only with a concrete counter-evidence URL, bounded to a fixed number of rounds. Re-runs full consensus over the locked set plus your source; only changes anything if the verdict actually moves.</p>
+
+      <label for="challengeId">Match ID</label>
+      <input type="text" id="challengeId" placeholder="0">
+
+      <label for="challengeUrl">Counter-evidence source URL</label>
+      <input type="text" id="challengeUrl" placeholder="https://reuters.com/sport/...">
+
+      <label for="challengeNote">Note (optional, for the audit trail)</label>
+      <input type="text" id="challengeNote" placeholder="Official league feed reports a different result" maxlength="240">
+
+      <button class="danger" id="challengeBtn" type="button">Submit challenge</button>
+      <div class="out" id="challengeOut"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Finalize Match</h2>
+      <p class="desc">Permissionless. Locks in the current provisional verdict once the challenge window has closed — always terminal, never stuck, even on a Disputed/Indeterminate verdict (which finalizes as a refund).</p>
+
+      <label for="finalizeId">Match ID</label>
+      <input type="text" id="finalizeId" placeholder="0">
+
+      <button class="primary" id="finalizeBtn" type="button">Finalize</button>
+      <div class="out" id="finalizeOut"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Expire Match</h2>
+      <p class="desc">Permissionless. Moves a lapsed pre-proposal match (never accepted before kickoff, or never got a quality-clearing proposal before the resolution window closed) to "expired".</p>
+
+      <label for="expireId">Match ID</label>
+      <input type="text" id="expireId" placeholder="0">
+
+      <button class="primary" id="expireBtn" type="button">Expire</button>
+      <div class="out" id="expireOut"></div>
+    </section>
+
+  </div>
+
+  <div class="col">
+
+    <section class="panel">
+      <h2>Read Match</h2>
+      <p class="desc">Full auditable record: canonical fixture identity, parties, timing, current status, locked evidence, and (once finalized) the final verdict and settlement.</p>
+
+      <label for="readId">Match ID</label>
+      <input type="text" id="readId" placeholder="0">
+      <button class="primary" id="readBtn" type="button">Read</button>
+
+      <div class="verdict-hero" id="verdictHero">
+        <div class="vlabel">Final verdict</div>
+        <div class="vvalue" id="verdictValue">—</div>
+        <div class="vsettlement" id="verdictSettlement">—</div>
+      </div>
+
+      <div id="fieldsList"></div>
+
+      <h2 style="margin-top:20px;">Latest Evidence</h2>
+      <div id="evidenceList"></div>
+
+      <h2 style="margin-top:20px;">Resolution History</h2>
+      <div id="historyList"></div>
+
+      <div class="out" id="readOut"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Check Role</h2>
+      <p class="desc">Look up whether an address is party_a, party_b, or unrelated to a given match.</p>
+
+      <label for="roleId">Match ID</label>
+      <input type="text" id="roleId" placeholder="0">
+      <label for="roleAddr">Address</label>
+      <input type="text" id="roleAddr" placeholder="0x…">
+
+      <button class="primary" id="roleBtn" type="button">Check role</button>
+      <div class="out" id="roleOut"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Total Matches</h2>
+      <p class="desc">Total number of matches ever created on this contract instance.</p>
+
+      <button class="primary" id="totalBtn" type="button">Fetch total_matches</button>
+      <div class="out" id="totalOut"></div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  MatchGuard dApp — a minimal reference frontend built with <code>genlayer-js</code>.
+  Every dynamic value on this page is written with <code>textContent</code>/<code>createElement</code> only —
+  <code>innerHTML</code> is never used, so data returned from the contract or fetched off-chain can never be
+  interpreted as HTML/script by this page.
+</footer>
+
+<script type="module">
+import { createClient, createAccount } from "https://esm.sh/genlayer-js@latest";
+import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
+
+// ------------------------------------------------------------------
+// EDIT THIS if you redeploy the contract to a new address.
+// ------------------------------------------------------------------
+const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+document.getElementById('contractAddrText').textContent = CONTRACT_ADDRESS;
+
+let client = null;
+let account = null;
+
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const connectBtn = document.getElementById('connectBtn');
+const testSessionBtn = document.getElementById('testSessionBtn');
+const testSessionNote = document.getElementById('testSessionNote');
+
+function setStatus(connected, label){
+  statusDot.classList.toggle('on', connected);
+  statusText.textContent = label;
+}
+
+async function connectWallet(){
+  if (!window.ethereum) {
+    setStatus(false, 'No injected wallet found — install MetaMask, or use "start test session" instead');
+    return;
+  }
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    account = accounts[0];
+    client = createClient({ chain: studionet, account });
+    setStatus(true, `Connected (MetaMask) · ${account.slice(0,6)}…${account.slice(-4)}`);
+    connectBtn.textContent = 'reconnect';
+    testSessionNote.style.display = 'none';
+  } catch (err) {
+    setStatus(false, 'Connection rejected');
+  }
+}
+connectBtn.addEventListener('click', connectWallet);
+
+function startTestSession(){
+  const generated = createAccount();
+  account = generated.address ?? generated;
+  client = createClient({ chain: studionet, account: generated });
+  setStatus(true, `Connected (test session) · ${account.slice(0,6)}…${account.slice(-4)}`);
+  testSessionBtn.textContent = 'new test session';
+  testSessionNote.style.display = 'block';
+}
+testSessionBtn.addEventListener('click', startTestSession);
+
+// Read-only client, usable even without a wallet connection.
+const readClient = createClient({ chain: studionet });
+
+// ------------------------------------------------------------------
+// DOM-safety helpers. Every dynamic value on this page goes through
+// one of these — textContent for plain text, createElement for
+// structure. innerHTML is never used anywhere in this file, so
+// contract output or fetched content can never be parsed as markup.
+// ------------------------------------------------------------------
+function clearChildren(node){
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+function makeEl(tag, opts, children){
+  const node = document.createElement(tag);
+  if (opts) {
+    if (opts.className) node.className = opts.className;
+    if (opts.text !== undefined) node.textContent = opts.text;
+  }
+  if (children) {
+    for (const child of children) node.appendChild(child);
+  }
+  return node;
+}
+
+function showOut(el, text, kind){
+  el.style.display = 'block';
+  el.className = 'out' + (kind ? ' ' + kind : '');
+  el.textContent = text; // safe: textContent never interprets markup
+}
+
+function parseCommaList(raw){
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseLineList(raw){
+  return raw.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+/**
+ * Convert a <input type="datetime-local"> value (local time, no
+ * timezone) into an ISO-8601 UTC string ending in "Z", which is what
+ * the contract's scheduled_start/resolution_deadline parameters expect.
+ */
+function localInputToIsoUtc(localValue){
+  const d = new Date(localValue); // interpreted as local time by the Date constructor
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString(); // always UTC, always ends in "Z"
+}
+
+function defaultLocalValue(hoursFromNow){
+  const future = new Date(Date.now() + hoursFromNow * 3600000);
+  const tzOffsetMs = future.getTimezoneOffset() * 60000;
+  const local = new Date(future.getTime() - tzOffsetMs);
+  return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+}
+document.getElementById('scheduledStart').value = defaultLocalValue(3);
+document.getElementById('deadline').value = defaultLocalValue(5);
+
+/**
+ * Extract the contract method's actual return value from a GenLayer
+ * transaction receipt. The leader's decoded return value is nested at
+ * receipt.consensus_data.leader_receipt[0].result.payload.readable as
+ * a JSON-encoded string (e.g. '"0"' for a bare string return, or a
+ * JSON string of a JSON string for methods that themselves return
+ * json.dumps(...), like propose_resolution/get_match). This unwraps
+ * that nesting generically.
+ */
+function extractReturnValue(receipt){
+  const payload = receipt?.consensus_data?.leader_receipt?.[0]?.result?.payload?.readable;
+  if (payload === undefined) return null;
+  let value = payload;
+  for (let i = 0; i < 3; i++) {
+    if (typeof value !== 'string') break;
+    const trimmed = value.trim();
+    const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.startsWith('"');
+    if (!looksLikeJson) break;
+    try { value = JSON.parse(value); } catch (e) { break; }
+  }
+  return value;
+}
+
+function requireClient(out){
+  if (!client) {
+    showOut(out, 'Connect a wallet first (MetaMask or test session).', 'err');
+    return false;
+  }
+  return true;
+}
+
+function fillIdFields(id){
+  for (const elId of ['acceptId', 'proposeId', 'challengeId', 'finalizeId', 'expireId', 'readId']) {
+    document.getElementById(elId).value = String(id);
+  }
+}
+
+// ---------- 01: Create Match ----------
+document.getElementById('createBtn').addEventListener('click', async () => {
+  const out = document.getElementById('createOut');
+  if (!requireClient(out)) return;
+
+  const partyB = document.getElementById('partyB').value.trim();
+  const sport = document.getElementById('sport').value.trim();
+  const competition = document.getElementById('competition').value.trim();
+  const homeTeam = document.getElementById('homeTeam').value.trim();
+  const awayTeam = document.getElementById('awayTeam').value.trim();
+  const scheduledLocal = document.getElementById('scheduledStart').value;
+  const sideA = document.getElementById('sideA').value;
+  const deadlineLocal = document.getElementById('deadline').value;
+  const description = document.getElementById('description').value.trim();
+  const domains = parseCommaList(document.getElementById('requiredDomains').value);
+
+  if (!partyB) { showOut(out, "Enter party B's address.", 'err'); return; }
+  if (!sport || !competition) { showOut(out, 'Enter both sport and competition.', 'err'); return; }
+  if (!homeTeam || !awayTeam) { showOut(out, 'Enter both home_team and away_team.', 'err'); return; }
+  const scheduledIso = localInputToIsoUtc(scheduledLocal);
+  if (!scheduledIso) { showOut(out, 'Enter a valid scheduled start.', 'err'); return; }
+  const deadlineIso = localInputToIsoUtc(deadlineLocal);
+  if (!deadlineIso) { showOut(out, 'Enter a valid resolution deadline.', 'err'); return; }
+  if (!description) { showOut(out, 'Enter a description.', 'err'); return; }
+  if (domains.length < 2) { showOut(out, 'Enter at least 2 required source domains.', 'err'); return; }
+
+  const args = [partyB, sport, competition, homeTeam, awayTeam, scheduledIso, sideA, deadlineIso, description, domains];
+
+  try {
+    showOut(out, 'Submitting transaction…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'create_match', args, value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 4000, retries: 30,
+    });
+    const matchId = extractReturnValue(receipt);
+    if (matchId !== null && matchId !== undefined) {
+      showOut(out, `Match created. ID: ${matchId}\n\nTx: ${txHash}`, 'ok');
+      fillIdFields(matchId);
+    } else {
+      showOut(out, `Finalized, but the match ID could not be auto-detected.\nCheck the explorer.\n\nTx: ${txHash}`, 'ok');
+    }
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+// ---------- 02: Accept / Cancel Match ----------
+document.getElementById('acceptBtn').addEventListener('click', async () => {
+  const out = document.getElementById('acceptOut');
+  if (!requireClient(out)) return;
+  const id = document.getElementById('acceptId').value.trim();
+  if (!id) { showOut(out, 'Enter a match ID.', 'err'); return; }
+  try {
+    showOut(out, 'Submitting transaction…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'accept_match', args: [id], value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 4000, retries: 30,
+    });
+    const result = extractReturnValue(receipt);
+    showOut(out, `Accepted.\n\nTx: ${txHash}\n\n${result !== null ? JSON.stringify(result, null, 2) : 'See explorer.'}`, 'ok');
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+document.getElementById('cancelBtn').addEventListener('click', async () => {
+  const out = document.getElementById('acceptOut');
+  if (!requireClient(out)) return;
+  const id = document.getElementById('acceptId').value.trim();
+  if (!id) { showOut(out, 'Enter a match ID.', 'err'); return; }
+  try {
+    showOut(out, 'Submitting transaction…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'cancel_match', args: [id], value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 4000, retries: 30,
+    });
+    const result = extractReturnValue(receipt);
+    showOut(out, `Cancelled.\n\nTx: ${txHash}\n\n${result !== null ? JSON.stringify(result, null, 2) : 'See explorer.'}`, 'ok');
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+// ---------- 03: Propose Resolution ----------
+document.getElementById('proposeBtn').addEventListener('click', async () => {
+  const out = document.getElementById('proposeOut');
+  if (!requireClient(out)) return;
+
+  const id = document.getElementById('proposeId').value.trim();
+  const urls = parseLineList(document.getElementById('proposeUrls').value);
+
+  if (!id) { showOut(out, 'Enter a match ID.', 'err'); return; }
+  if (urls.length < 2 || urls.length > 6) {
+    showOut(out, 'Provide 2–6 source URLs (one per line).', 'err');
+    return;
+  }
+
+  try {
+    showOut(out, 'Submitting transaction — this triggers live fetch + LLM extraction under validator consensus, it can take a while…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'propose_resolution', args: [id, urls], value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization — this runs a real fetch + LLM extraction per source, so it can take a few minutes…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 5000, retries: 90,
+    });
+    const result = extractReturnValue(receipt);
+    showOut(out, `Done.\n\nTx: ${txHash}\n\n${result !== null ? JSON.stringify(result, null, 2) : JSON.stringify(receipt, null, 2)}`, 'ok');
+    document.getElementById('readId').value = id;
+    fetchMatch(id);
+  } catch (err) {
+    const message = err?.message || String(err);
+    if (/timed out/i.test(message)) {
+      showOut(out, `${message}\n\nThis is just the browser giving up on waiting — the transaction may still finalize on-chain. Wait, then use "Read Match" with the same ID.`, 'err');
+    } else {
+      showOut(out, 'Error: ' + message, 'err');
+    }
+  }
+});
+
+// ---------- 04: Challenge Resolution ----------
+document.getElementById('challengeBtn').addEventListener('click', async () => {
+  const out = document.getElementById('challengeOut');
+  if (!requireClient(out)) return;
+
+  const id = document.getElementById('challengeId').value.trim();
+  const url = document.getElementById('challengeUrl').value.trim();
+  const note = document.getElementById('challengeNote').value.trim();
+
+  if (!id) { showOut(out, 'Enter a match ID.', 'err'); return; }
+  if (!url) { showOut(out, 'Enter a counter-evidence source URL.', 'err'); return; }
+
+  try {
+    showOut(out, 'Submitting transaction — re-runs fetch + LLM extraction over the full evidence set…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'challenge_resolution', args: [id, url, note], value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 5000, retries: 90,
+    });
+    const result = extractReturnValue(receipt);
+    showOut(out, `Done.\n\nTx: ${txHash}\n\n${result !== null ? JSON.stringify(result, null, 2) : JSON.stringify(receipt, null, 2)}`, 'ok');
+    document.getElementById('readId').value = id;
+    fetchMatch(id);
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+// ---------- 05: Finalize Match ----------
+document.getElementById('finalizeBtn').addEventListener('click', async () => {
+  const out = document.getElementById('finalizeOut');
+  if (!requireClient(out)) return;
+  const id = document.getElementById('finalizeId').value.trim();
+  if (!id) { showOut(out, 'Enter a match ID.', 'err'); return; }
+  try {
+    showOut(out, 'Submitting transaction…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'finalize_match', args: [id], value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 4000, retries: 30,
+    });
+    const result = extractReturnValue(receipt);
+    showOut(out, `Finalized.\n\nTx: ${txHash}\n\n${result !== null ? JSON.stringify(result, null, 2) : 'See explorer.'}`, 'ok');
+    document.getElementById('readId').value = id;
+    fetchMatch(id);
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+// ---------- 06: Expire Match ----------
+document.getElementById('expireBtn').addEventListener('click', async () => {
+  const out = document.getElementById('expireOut');
+  if (!requireClient(out)) return;
+  const id = document.getElementById('expireId').value.trim();
+  if (!id) { showOut(out, 'Enter a match ID.', 'err'); return; }
+  try {
+    showOut(out, 'Submitting transaction…');
+    const txHash = await client.writeContract({
+      address: CONTRACT_ADDRESS, functionName: 'expire_match', args: [id], value: 0,
+    });
+    showOut(out, `Transaction sent: ${txHash}\nWaiting for finalization…`);
+    const receipt = await client.waitForTransactionReceipt({
+      hash: txHash, status: 'FINALIZED', interval: 4000, retries: 30,
+    });
+    const result = extractReturnValue(receipt);
+    showOut(out, `Expired.\n\nTx: ${txHash}\n\n${result !== null ? JSON.stringify(result, null, 2) : 'See explorer.'}`, 'ok');
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+// ---------- 07: Read Match ----------
+document.getElementById('readBtn').addEventListener('click', () => {
+  const id = document.getElementById('readId').value.trim();
+  if (!id) return;
+  fetchMatch(id);
+});
+
+async function fetchMatch(id){
+  const out = document.getElementById('readOut');
+  try {
+    showOut(out, 'Reading contract state…');
+    const raw = await readClient.readContract({
+      address: CONTRACT_ADDRESS, functionName: 'get_match', args: [id],
+    });
+    const match = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    showOut(out, JSON.stringify(match, null, 2), 'ok');
+    renderMatch(match);
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+    clearChildren(document.getElementById('evidenceList'));
+    document.getElementById('evidenceList').appendChild(makeEl('p', { className: 'evidence-empty', text: 'Could not load match.' }));
+    clearChildren(document.getElementById('historyList'));
+    document.getElementById('verdictHero').style.display = 'none';
+    clearChildren(document.getElementById('fieldsList'));
+  }
+}
+
+/**
+ * Renders the match summary, latest evidence, and resolution history
+ * using ONLY document.createElement / textContent — never innerHTML —
+ * so that every string here (addresses, description, team names,
+ * domains, URLs, quality flags, notes, etc.) is treated strictly as
+ * text by the DOM and can never be interpreted as markup.
+ */
+function renderMatch(match){
+  const verdictHero = document.getElementById('verdictHero');
+  const verdictValue = document.getElementById('verdictValue');
+  const verdictSettlement = document.getElementById('verdictSettlement');
+  const fieldsList = document.getElementById('fieldsList');
+  const evidenceList = document.getElementById('evidenceList');
+  const historyList = document.getElementById('historyList');
+
+  const shownVerdict = match.final_verdict || match.proposed_verdict;
+  const shownSettlement = match.settlement_outcome || match.proposed_settlement;
+  if (shownVerdict) {
+    verdictHero.style.display = 'block';
+    verdictValue.textContent = shownVerdict + (match.final_verdict ? '' : ' (provisional)');
+    verdictSettlement.textContent = shownSettlement ? `Settlement: ${shownSettlement}` : 'Not yet settled';
+  } else {
+    verdictHero.style.display = 'none';
+  }
+
+  clearChildren(fieldsList);
+  const statusBadge = makeEl('span', {
+    className: 'badge badge-status-' + (match.status || ''),
+    text: match.status || '—',
+  });
+  const fixture = `${match.home_team || '?'} vs ${match.away_team || '?'}`;
+  const rows = [
+    ['status', null, statusBadge],
+    ['party_a', match.party_a],
+    ['party_b', match.party_b],
+    ['side_a backs', match.side_a],
+    ['fixture', fixture],
+    ['sport / competition', `${match.sport || ''} / ${match.competition || ''}`],
+    ['scheduled_start', match.scheduled_start],
+    ['description', match.description],
+    ['required_source_domains', (match.required_source_domains || []).join(', ')],
+    ['locked_source_urls', (match.locked_source_urls || []).join(', ')],
+    ['created_at', match.created_at],
+    ['accepted_at', match.accepted_at],
+    ['resolution_deadline', match.resolution_deadline],
+    ['resolution_window_closes_at', match.resolution_window_closes_at],
+    ['challenge_deadline', match.challenge_deadline],
+    ['challenge_rounds_used', match.challenge_rounds_used],
+    ['version', match.version],
+    ['resolved_at', match.resolved_at],
+  ];
+  for (const [key, value, customValueNode] of rows) {
+    const kSpan = makeEl('span', { className: 'k', text: key });
+    const vSpan = customValueNode
+      ? makeEl('span', { className: 'v' }, [customValueNode])
+      : makeEl('span', { className: 'v', text: (value === null || value === undefined || value === '') ? '—' : String(value) });
+    fieldsList.appendChild(makeEl('div', { className: 'field-row' }, [kSpan, vSpan]));
+  }
+
+  clearChildren(evidenceList);
+  const records = match.records || [];
+  if (!records.length) {
+    evidenceList.appendChild(makeEl('p', { className: 'evidence-empty', text: 'No resolution evidence yet — call propose_resolution.' }));
+  } else {
+    for (const r of records) {
+      const domainSpan = makeEl('span', { className: 'domain', text: r.domain || '—' });
+      const flagSpan = makeEl('span', { className: 'flag', text: r.quality_flag || '' });
+      const status = r.status || 'Unknown';
+      const badgeClass = 'badge badge-verdict-' + status;
+      const statusBadgeEl = makeEl('span', { className: badgeClass, text: status + (r.result && r.result !== 'Unclear' ? ` · ${r.result}` : '') });
+      evidenceList.appendChild(makeEl('div', { className: 'evidence-row' }, [domainSpan, flagSpan, statusBadgeEl]));
+    }
+  }
+
+  clearChildren(historyList);
+  const history = match.resolution_history || [];
+  if (!history.length) {
+    historyList.appendChild(makeEl('p', { className: 'evidence-empty', text: 'No resolution history yet.' }));
+  } else {
+    for (const h of history) {
+      const trigger = makeEl('span', { className: 'htrigger', text: `v${h.version} · ${h.trigger}` });
+      const ts = makeEl('span', { className: 'hts', text: h.timestamp || '' });
+      const top = makeEl('div', { className: 'htop' }, [trigger, ts]);
+      const verdictBadge = makeEl('span', { className: 'badge badge-verdict-' + (h.final_verdict || ''), text: h.final_verdict || '—' });
+      const settlementBadge = makeEl('span', { className: 'badge badge-settlement-' + (h.settlement_outcome || ''), text: h.settlement_outcome || '—' });
+      const detailText = h.challenger ? `challenger: ${h.challenger}${h.challenge_note ? ' — ' + h.challenge_note : ''}` : `sources: ${(h.source_urls || []).length}`;
+      const detail = makeEl('div', { className: 'hdetail' }, [verdictBadge, document.createTextNode(' '), settlementBadge, document.createTextNode('  ' + detailText)]);
+      historyList.appendChild(makeEl('div', { className: 'history-row' }, [top, detail]));
+    }
+  }
+}
+
+// ---------- 08: Check Role ----------
+document.getElementById('roleBtn').addEventListener('click', async () => {
+  const out = document.getElementById('roleOut');
+  const id = document.getElementById('roleId').value.trim();
+  const addr = document.getElementById('roleAddr').value.trim();
+  if (!id || !addr) { showOut(out, 'Enter both a match ID and an address.', 'err'); return; }
+  try {
+    showOut(out, 'Reading contract state…');
+    const role = await readClient.readContract({
+      address: CONTRACT_ADDRESS, functionName: 'get_role', args: [id, addr],
+    });
+    showOut(out, String(role), 'ok');
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+
+// ---------- 09: Total Matches ----------
+document.getElementById('totalBtn').addEventListener('click', async () => {
+  const out = document.getElementById('totalOut');
+  try {
+    showOut(out, 'Reading contract state…');
+    const total = await readClient.readContract({
+      address: CONTRACT_ADDRESS, functionName: 'total_matches', args: [],
+    });
+    showOut(out, String(total), 'ok');
+  } catch (err) {
+    showOut(out, 'Error: ' + (err?.message || String(err)), 'err');
+  }
+});
+</script>
+
+</body>
+</html>
