@@ -52,8 +52,16 @@ Evidence sources used:
 
 46 pytest tests (party binding and timing, URL/domain parsing, two-stage aggregation logic, and a full end-to-end suite including a challenge scenario that flips a verdict from Disputed to a decisive result and back) — all passing.
 
+## Frontend write-path verification
+
+Beyond exercising the contract directly through GenLayer Studio, the live `index.html` frontend was independently verified against the deployed contract with a real MetaMask wallet — confirming the `genlayer-js` integration itself (argument construction, transaction signing, receipt parsing, match_id extraction) works end to end, not just the contract logic:
+
+- **Read path:** loaded match `0` on the live site — the verdict hero, party/timing fields, evidence list, and full two-entry resolution history all rendered correctly against the finalized on-chain state.
+- **create_match from the frontend:** `match_id: "1"` created, tx `0xcd589c6862f3b511eef5f972f4fce332022052b5ab1de7158f3919c16284b386`.
+- **cancel_match from the frontend:** match `1` cancelled by party_a, tx `0xdc19e34b3e9af0372825b7ab183684e3c38554c04ed3e56da3fa9ee4e965b700`.
+
 ## Repository / Frontend
 
-- GitHub repo: **[add your repo link here]**
-- GitHub Pages (live frontend): **[add your Pages link here]**
+- GitHub repo: `https://github.com/Mary1270/matchguard-dapp`
+- GitHub Pages (live frontend): `https://mary1270.github.io/matchguard-dapp/`
 - GenLayer Explorer: `https://explorer-studio.genlayer.com/address/0xA98b5BdD53a91533214103aAfbC6687Da8239Bc4`
